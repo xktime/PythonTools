@@ -1,7 +1,7 @@
-import pprint
 import re
-
+import os
 import openpyxl as op
+import datetime
 
 '''
 ----------------------------------------实体类------------------------------
@@ -81,11 +81,20 @@ def getEntitys(sourcePath):
                 findMonthDatas(entitys, sheet, column, row)
     return entitys
 
+
 def createAndWriteExcelFile(entitys, filePah):
+    if os.path.exists(filePah):
+        print("该文件已存在，是否覆盖当前文件，输入yes or no")
+        isDelete = input()
+        if isDelete == "yes":
+            os.remove(filePah)
+        else:
+            nowTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            filePah = './' + nowTime + '.xlsx'
     wb = op.Workbook()
     for year, monthMap in entitys.items():
         for month, entityMap in monthMap.items():
-            sheet = wb.create_sheet(str(year) + '.' + str(month))
+            sheet = wb.create_sheet(str(year) + str(month) + "月")
             entityList = list(entityMap.values())
             for row in range(1, len(entityList) + 1):
                 if row == 1:
@@ -114,5 +123,8 @@ def createAndWriteExcelFile(entitys, filePah):
 '''
 ----------------------------------------main------------------------------
 '''
-entitys = getEntitys('./testData.xlsx')
-createAndWriteExcelFile(entitys, './test.xlsx')
+print("请输入你需要转换的文件名")
+sourceName = './' + input() + '.xlsx'
+print("请输入需要生成文件名文件名")
+filePah = './' + input() + '.xlsx'
+createAndWriteExcelFile(getEntitys(sourceName), filePah)
