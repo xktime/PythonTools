@@ -1,7 +1,8 @@
-import re
-import os
-import openpyxl as op
 import datetime
+import os
+import re
+
+import openpyxl as op
 
 '''
 ----------------------------------------实体类------------------------------
@@ -26,20 +27,20 @@ COMPANY_ID_COLUMN = 4
 '''
 
 
-def findMonthDatas(entitys, sheet, yearColumn, yearRow):
+def find_month_datas(entitys, sheet, year_column, year_row):
     month = 0
-    year = sheet.cell(yearRow, yearColumn).value.replace('\n', '')
+    year = sheet.cell(year_row, year_column).value.replace('\n', '')
     if year not in entitys:
         monthMap = {}
         entitys[year] = monthMap
     monthMap = entitys[year]
-    for dataColumn in range(yearColumn, yearColumn + 12):
+    for dataColumn in range(year_column, year_column + 12):
         month += 1
         if month not in monthMap:
             dataMap = {}  ##map<companyId, List<TargetEntity>>
             monthMap[month] = dataMap
         dataMap = monthMap[month]
-        for row in range(yearRow + 1, sheet.max_row):
+        for row in range(year_row + 1, sheet.max_row):
             index = sheet.cell(row, 1).value
             if index is None:
                 continue
@@ -60,8 +61,8 @@ def findMonthDatas(entitys, sheet, yearColumn, yearRow):
 
 
 ##return map<year, map<month, map<companyId, TargetEntity>>
-def getEntitys(sourcePath):
-    sourceWb = op.load_workbook(sourcePath)
+def get_entitys(source_path):
+    sourceWb = op.load_workbook(source_path)
     sheetNames = sourceWb.sheetnames
     entitys = {}
     for sheetName in sheetNames:
@@ -78,19 +79,19 @@ def getEntitys(sourcePath):
                     continue
                 if re.match(r'(\d){4}年', str(year)) is None:
                     continue
-                findMonthDatas(entitys, sheet, column, row)
+                find_month_datas(entitys, sheet, column, row)
     return entitys
 
 
-def createAndWriteExcelFile(entitys, filePah):
-    if os.path.exists(filePah):
+def create_and_write_excel_file(entitys, file_path):
+    if os.path.exists(file_path):
         print("该文件已存在，是否覆盖当前文件，输入yes or no")
         isDelete = input()
         if isDelete == "yes":
-            os.remove(filePah)
+            os.remove(file_path)
         else:
             nowTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            filePah = './' + nowTime + '.xlsx'
+            file_path = './' + nowTime + '.xlsx'
     wb = op.Workbook()
     for year, monthMap in entitys.items():
         for month, entityMap in monthMap.items():
@@ -117,14 +118,14 @@ def createAndWriteExcelFile(entitys, filePah):
                         dataMap = entity.map
                         if dataName in dataMap:
                             sheet.cell(row, column).value = dataMap[dataName]
-    wb.save(filePah)
+    wb.save(file_path)
 
 
 '''
 ----------------------------------------main------------------------------
 '''
-print("请输入你需要转换的文件名")
-sourceName = './' + input() + '.xlsx'
-print("请输入需要生成文件名文件名")
-filePah = './' + input() + '.xlsx'
-createAndWriteExcelFile(getEntitys(sourceName), filePah)
+print("请输入需要转换的文件名")
+source_file_name = './' + input() + '.xlsx'
+print("请输入需要生成的文件名")
+target_file_path = './' + input() + '.xlsx'
+create_and_write_excel_file(get_entitys(source_file_name), target_file_path)
