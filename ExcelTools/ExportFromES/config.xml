@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<elasticsearch>
+	<adress>127.0.0.1:9201</adress>
+	<username>admin</username>
+	<password>123456</password>
+</elasticsearch>
