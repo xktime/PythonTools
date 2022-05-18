@@ -11,20 +11,18 @@ CHAPTER_COLUMN = 5
 LOGIN_TIME_COLUMN = 6
 
 
-def get_es_data(index):
+def get_es_data(index, count):
     dom = xml.parse('config.xml')
     root = dom.documentElement
-    adress = root.getElementsByTagName('adress')[0].firstChild.data
+    address = root.getElementsByTagName('address')[0].firstChild.data
     username = root.getElementsByTagName('username')[0].firstChild.data
     password = root.getElementsByTagName('password')[0].firstChild.data
-    es = Elasticsearch(['http://' + adress], http_auth=(username, password))
-    count = es.count(index=index)["count"]
+    es = Elasticsearch(['http://' + address], http_auth=(username, password))
     fromIndex = 0
     size = 1000
     results = []
     while fromIndex < count:
         body = {
-            "_source": ["lastLoginTime", "chapter", "guideId", "level", "roleId", "roleName"],
             "query": {
                 "match_all": {
                 },
@@ -39,60 +37,41 @@ def get_es_data(index):
     return results
 
 
-def get_filter_data(crossTime, index):
-    beforeMap = {}  ## <roleId, times>
-    afterMap = {}
-    for result in get_es_data(index):
-        source = result["_source"]
-        roleId = source["roleId"]
-        formatTime = time.strptime(result["_source"]["lastLoginTime"], '%m/%d/%Y %H:%M:%S')
-        if formatTime < crossTime:
-            if beforeMap.__contains__(roleId):
-                if time.strptime(beforeMap[roleId]['lastLoginTime'], '%m/%d/%Y %H:%M:%S') < formatTime:
-                    beforeMap[roleId] = source
-            else:
-                beforeMap[roleId] = source
-        else:
-            afterMap[roleId] = source
-    result = []
-    for info in beforeMap.values():
-        roleId = info["roleId"]
-        if afterMap.__contains__(roleId):
-            continue
-        result.append(info)
-    return result
-
-
-def export_to_excel(time, index):
+def export_to_excel(index, count):
     wb = op.Workbook()
-    sheet = wb.create_sheet("行为统计")
-    sheet.cell(1, ROLE_ID_COLUMN).value = '玩家id'
-    sheet.cell(1, ROLE_NAME_COLUMN).value = '玩家名字'
-    sheet.cell(1, LEVEL_COLUMN).value = '等级'
-    sheet.cell(1, GUIDE_ID_COLUMN).value = '引导id'
-    sheet.cell(1, CHAPTER_COLUMN).value = '关卡'
-    sheet.cell(1, LOGIN_TIME_COLUMN).value = '最后登录时间'
-
-    row = 2
-    for info in get_filter_data(time, index):
-        sheet.cell(row, ROLE_ID_COLUMN).value = str(info["roleId"])
-        sheet.cell(row, ROLE_NAME_COLUMN).value = info["roleName"]
-        sheet.cell(row, LEVEL_COLUMN).value = info["level"]
-        sheet.cell(row, GUIDE_ID_COLUMN).value = str(info["guideId"])
-        sheet.cell(row, CHAPTER_COLUMN).value = info["chapter"]
-        sheet.cell(row, LOGIN_TIME_COLUMN).value = info["lastLoginTime"]
-        row += 1
+    sheet = wb.create_sheet("导出数据", 0)
+    datas = get_es_data(index, count)
+    indexMapping = {}
+    for i in range(1, len(datas)):
+        data = datas.__getitem__(i)
+        if data is None:
+            continue
+        info = data["_source"]
+        if i == 1:
+            keys = list(info.keys())
+            for j in range(1, len(keys)):
+                key = keys.__getitem__(j)
+                sheet.cell(1, j).value = key
+                indexMapping[key] = j
+        for key, value in info.items():
+            if not indexMapping.__contains__(key):
+                continue
+            sheet.cell(i + 1, indexMapping.__getitem__(key)).value = str(value)
 
     wb.save("./result.xlsx")
 
 
 print("请输入需要查询的索引")
 index = input()
-print("请输入需要查询【年/月/日 时：分：秒】之后未登陆过的玩家")
-datetime = input()
+print("请输入需要查询多少条数据")
+count = input()
+
 try:
-    datetime = time.strptime(datetime, '%Y/%m/%d %H:%M:%S')
+    count = int(count)
 except:
-    print("时间格式输入错误，格式应为 年/月/日 时：分：秒")
-else:
-    export_to_excel(datetime, index)
+    print("请输入数字")
+
+try:
+    export_to_excel(index, count)
+except Exception as e:
+    print(e)
