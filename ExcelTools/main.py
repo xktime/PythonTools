@@ -1,2 +1,15 @@
+import pymongo
+import bson
 
-print('\xe5\x8f\x82\xe6\x95\xb0\xe9\x94\x99\xe8\xaf\xaf'.encode('gb2312'))
+client = pymongo.MongoClient("mongodb://localhost:27017")
+db = client["mixture"]
+collection = db["mixture"]
+
+with open("mixture.bson", "rb") as file:
+    data = file.read()
+
+documents = bson.decode_all(data)
+
+collection.insert_many(documents)
+
+print("完成")
